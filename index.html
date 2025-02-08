@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📸 Image Explorer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            text-align: center;
+            color: white;
+            margin: 0;
+            padding: 0;
+            position: relative;
+            min-height: 100vh;
+            background-color: black;
+            overflow-y: auto;
+        }
+
+        /* Background Slideshow */
+        .slideshow {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            z-index: -1;
+            display: flex;
+        }
+
+        .slideshow img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+        }
+
+        .slideshow img.active {
+            opacity: 1;
+        }
+
+        h1 {
+            font-size: 3em;
+            font-weight: 700;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+            color: white;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            padding: 50px 20px;
+        }
+
+        .search-box {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        input {
+            width: 320px;
+            padding: 14px;
+            border-radius: 30px;
+            border: none;
+            font-size: 16px;
+            outline: none;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            text-align: center;
+            box-shadow: 0px 0px 10px rgba(0, 255, 255, 0.8);
+        }
+
+        button, .mic-btn {
+            padding: 14px 22px;
+            border-radius: 30px;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            background: linear-gradient(45deg, #ff8c00, #ff4500);
+            color: white;
+            box-shadow: 0px 0px 15px rgba(255, 140, 0, 0.8);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        button:hover, .mic-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0px 0px 20px rgba(255, 140, 0, 1);
+        }
+
+        #imageContainer {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .image-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.3);
+            width: 250px;
+        }
+
+        img {
+            width: 100%;
+            border-radius: 10px;
+            transition: transform 0.3s;
+        }
+
+        img:hover {
+            transform: scale(1.1);
+        }
+
+        .download-buttons a {
+            display: inline-block;
+            margin: 5px;
+            padding: 8px 12px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 14px;
+            color: white;
+            box-shadow: 0px 0px 8px rgba(255, 255, 255, 0.5);
+        }
+
+        .low { background: #3498db; }
+        .hd { background: #2ecc71; }
+        .fullhd { background: #e74c3c; }
+
+        #loadMore {
+            display: none;
+            margin: 20px auto;
+            padding: 14px 24px;
+            font-size: 20px;
+            border-radius: 8px;
+            background: linear-gradient(45deg, #ff8c00, #ff4500);
+            color: white;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0px 0px 15px rgba(255, 140, 0, 0.8);
+        }
+
+        #loadMore:hover {
+            transform: scale(1.1);
+            box-shadow: 0px 0px 20px rgba(255, 140, 0, 1);
+        }
+
+    </style>
+</head>
+<body>
+    <div class="slideshow" id="slideshow"></div>
+    <div class="container">
+        <h1>✨ Image Explorer !! 🚀</h1>
+        <div class="search-box">
+            <input type="text" id="searchQuery" placeholder="Search any image...">
+            <button onclick="searchImages(true)">Search</button>
+            <button class="mic-btn" onclick="startVoiceSearch()">🎤</button>
+        </div>
+        <div id="result">
+            <h2 id="searchTitle"></h2>
+            <div id="imageContainer"></div>
+        </div>
+        <button id="loadMore" onclick="loadMoreImages()">Load More</button>
+    </div>
+
+    <script>
+        let apiKey = "lXZlpSYS0AAzMXO9oz5C7IMCRzGXqCNT4Ouc3T8CS2V9VqFoXHesAOT2";
+        let currentSearch = "";
+        let page = 1;
+
+        function fetchBackgroundImages() {
+            fetch(`https://api.pexels.com/v1/curated?per_page=8`, { headers: { Authorization: apiKey } })
+            .then(response => response.json())
+            .then(data => {
+                let slideshowContainer = document.getElementById("slideshow");
+                data.photos.forEach(photo => {
+                    let img = document.createElement("img");
+                    img.src = photo.src.original;
+                    slideshowContainer.appendChild(img);
+                });
+
+                let images = document.querySelectorAll(".slideshow img");
+                let index = 0;
+                setInterval(() => {
+                    images.forEach(img => img.classList.remove("active"));
+                    images[index].classList.add("active");
+                    index = (index + 1) % images.length;
+                }, 5000);
+            });
+        }
+
+        function searchImages(reset = false) {
+            let query = document.getElementById("searchQuery").value.trim();
+            if (query === "") return alert("Enter a search term!");
+            if (reset) { document.getElementById("imageContainer").innerHTML = ""; page = 1; }
+            currentSearch = query;
+
+            fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=6&page=${page}`, {
+                headers: { Authorization: apiKey }
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("searchTitle").innerText = `Results for ${query}`;
+                data.photos.forEach(photo => {
+                    document.getElementById("imageContainer").innerHTML += `
+                        <div class="image-card">
+                            <img src="${photo.src.medium}">
+                            <div class="download-buttons">
+                                <a href="${photo.src.small}" class="low" download>Low</a>
+                                <a href="${photo.src.medium}" class="hd" download>HD</a>
+                                <a href="${photo.src.large}" class="fullhd" download>Full HD</a>
+                            </div>
+                        </div>`;
+                });
+
+                document.getElementById("loadMore").style.display = data.photos.length > 0 ? "block" : "none";
+            });
+        }
+
+        function loadMoreImages() {
+            page++;
+            searchImages(false);
+        }
+
+        function startVoiceSearch() {
+            let recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.onresult = event => {
+                document.getElementById("searchQuery").value = event.results[0][0].transcript;
+                searchImages(true);
+            };
+            recognition.start();
+        }
+
+        window.onload = fetchBackgroundImages;
+    </script>
+</body>
+</html>
